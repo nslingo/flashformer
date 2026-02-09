@@ -2,11 +2,20 @@ import pymupdf
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
+from pydantic import BaseModel
 import os
 
 load_dotenv()
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+class Flashcard(BaseModel):
+    tags: list[str]
+    question: str
+    answer: str
+
+class FlashcardSet(BaseModel):
+    flashcards: list[Flashcard]
 
 with st.sidebar:
     st.title('FlashFormer')
@@ -26,39 +35,52 @@ def main():
     if pdf is not None:
         st.write(f"Processing: {pdf.name}")
 
-        # Extract text from PDF
         doc = pymupdf.open(stream=pdf.read(), filetype="pdf")
         text = ""
         for page in doc:
             text += page.get_text()
         doc.close()
 
-        # Generate flashcards button
+        char_count = len(text)
+        word_count = len(text.split())
+        est_tokens = char_count // 4
+        st.caption(f"📊 Extracted: {char_count:,} characters (~{word_count:,} words, ~{est_tokens:,} tokens)")
+
+        keywords = st.text_input(
+            "🔑 Key topics/concepts (optional)",
+            placeholder="e.g., photosynthesis, derivatives, dynamic programming",
+            help="Enter important topics to focus flashcard generation"
+        )
+
         if st.button("Generate Flashcards"):
             with st.spinner("Generating flashcards..."):
-                model_id = os.getenv("FINE_TUNED_MODEL_ID", "gpt-3.5-turbo")
+                model_id = os.getenv("FINE_TUNED_MODEL_ID", "gpt-4.1-mini-2025-04-14")
 
                 try:
-                    response = client.responses.create(
+                    # Build messages with optional keywords
+                    system_msg = "You are a flashcard generator that produces concise Q&A flashcards from text. Focus on the most important concepts and information."
+                    user_msg = f"Create flashcards from this text:\n\n{text}"
+
+                    if keywords:
+                        user_msg = f"Create flashcards from this text focusing on these topics: {keywords}\n\nText:\n{text}"
+
+                    response = client.responses.parse(
                         model=model_id,
-                        instructions="You are a flashcard generator that produces concise Q&A flashcards from the provided text. Format each as 'Q: [question]\nA: [answer]\n\n'",
-                        input=f"Create flashcards from this text:\n\n{text[:4000]}"  # Limit tokens
+                        input=[
+                            {"role": "system", "content": system_msg},
+                            {"role": "user", "content": user_msg}
+                        ],
+                        text_format=FlashcardSet
                     )
 
-                    flashcards_text = response.output_text
+                    flashcard_set = response.output_parsed
+                    st.success(f"✅ Generated {len(flashcard_set.flashcards)} flashcards!")
 
-                    # Parse and display flashcards
-                    flashcards = flashcards_text.strip().split("\n\n")
-                    st.success(f"Generated {len(flashcards)} flashcards!")
-
-                    for card in flashcards:
-                        if "Q:" in card and "A:" in card:
-                            parts = card.split("\nA:")
-                            question = parts[0].replace("Q:", "").strip()
-                            answer = parts[1].strip() if len(parts) > 1 else ""
-
-                            with st.expander(f"❓ {question}"):
-                                st.write(answer)
+                    for card in flashcard_set.flashcards:
+                        with st.expander(f"❓ {card.question}"):
+                            if card.tags:
+                                st.markdown(" ".join([f"`{tag}`" for tag in card.tags]))
+                            st.write(card.answer)
 
                 except Exception as e:
                     st.error(f"Error generating flashcards: {str(e)}")
