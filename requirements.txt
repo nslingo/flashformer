@@ -2,3 +2,4 @@ openai
 pymupdf
 streamlit
 python-dotenv
+pydantic
