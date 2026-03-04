@@ -57,12 +57,11 @@ def main():
                 model_id = os.getenv("FINE_TUNED_MODEL_ID", "gpt-4.1-mini-2025-04-14")
 
                 try:
-                    # Build messages with optional keywords
-                    system_msg = "You are a flashcard generator that produces concise Q&A flashcards from text. Focus on the most important concepts and information."
-                    user_msg = f"Create flashcards from this text:\n\n{text}"
-
+                    system_msg = "You are a flashcard generator. Generate concise Q&A flashcards from the text provided by the user. Focus on the most important concepts and information."
                     if keywords:
-                        user_msg = f"Create flashcards from this text focusing on these topics: {keywords}\n\nText:\n{text}"
+                        system_msg += f" Prioritize flashcards on these topics: {keywords}."
+
+                    user_msg = text
 
                     response = client.responses.parse(
                         model=model_id,
@@ -84,7 +83,6 @@ def main():
 
                 except Exception as e:
                     st.error(f"Error generating flashcards: {str(e)}")
-
 
 if __name__ == "__main__":
     main()
