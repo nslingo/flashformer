@@ -4,10 +4,10 @@ Turn your PDFs into Anki-ready flashcards using a fine-tuned OpenAI model.
 
 ## Features
 
-- **SFT fine-tuning** - uses a supervised fine-tuned model trained on flashcard Q&A pairs to improve flashcard quality and consistency
-- **3-page chunking** - processes PDFs in chunks to handle large documents while reducing hallucination and avoiding hitting token limits
-- **Distractor keywords in training data** - teaches the model to generate flashcards only for topics supported by the text, reducing hallucinated cards
-- **Anki export** - downloads flashcards as a semicolon-delimited `.txt` file ready to import into Anki
+- **Supervised fine-tuning**: uses a supervised fine-tuned model trained on flashcard Q&A pairs to improve flashcard quality and consistency. More information in [training/README.md](training/README.md)
+- **Hallucination-resistant generation**: teaches the model to generate flashcards only for topics supported by the text, reducing hallucinated cards
+- **3-page chunking**: processes PDFs in chunks to handle large documents while keeping the model focused and avoiding hitting token limits
+- **Anki export**: downloads flashcards as a semicolon-delimited `.txt` file ready to import directly into Anki
 
 ## Installation
 
@@ -19,7 +19,7 @@ pip install -r requirements.txt
 Create a `.env` file with your OpenAI API key:
 
 ```
-OPENAI_API_KEY=your_key_here
+OPENAI_API_KEY=your_secret_key
 FINE_TUNED_MODEL_ID=your_fine_tuned_model_id  # optional, defaults to gpt-4.1-mini-2025-04-14
 ```
 
